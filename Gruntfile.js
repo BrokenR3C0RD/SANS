@@ -4,6 +4,10 @@ module.exports = function (grunt) {
             default: {
                 tsconfig: './tsconfig.json'
             }
+        },
+        watch: {
+            files: "src/*",
+            tasks: "default"
         }
     });
     function buildtime() {
@@ -24,6 +28,7 @@ module.exports = function (grunt) {
         return yyyymmdd;
     }
     grunt.loadNpmTasks("grunt-ts");
+    grunt.loadNpmTasks('grunt-contrib-watch');
     grunt.registerTask("add-build-meta", "adds build metadata", function () {
         grunt.file.write("bin/Internal/build.json", JSON.stringify({
             "build-meta": buildtime()

@@ -1,9 +1,10 @@
-import { ModuleLoader } from "./Internal/Module";
+import { ModuleLoader, Logger } from "./Internal/Module";
 
 declare global {
     module NodeJS {
         interface Global {
-            loader: ModuleLoader
+            loader: ModuleLoader,
+            logger: Logger
         }
     }
 }

@@ -70,7 +70,7 @@ export abstract class Module implements IDisposable {
     /** A list of dependencies required by this module. */
     abstract Dependencies: Dependencies;
     /** An instance of a logger for this module. */
-    protected logger: Logger;
+    protected logger: Logger | undefined;
 
     /** Functions that can be called by other libraries. */
     public readonly Functions: FunctionDictionary = {};
@@ -83,7 +83,7 @@ export abstract class Module implements IDisposable {
     /**
      * Pass a Logger to be used for debugging purposes.
      */
-    public constructor(logger: Logger){
+    public constructor(logger?: Logger){
         this.logger = logger;
     }
 
@@ -99,8 +99,10 @@ export abstract class Module implements IDisposable {
 
     /** Destroys the module, preparing it for unload. Don't override this. */
     public async destroy() {
-        this.logger.Debug("Module destroyed.");
-        await this.logger.destroy();
+        (this.logger || global.logger).Debug("Module destroyed.", this.Name);
+        if(this.logger){
+            await this.logger.destroy();
+        }
         this._destroyed = true;
     }
 }
@@ -184,11 +186,11 @@ export class ModuleLoader implements IFactory<Module> {
      * @param name The name of the module to load.
      */
     public async create(name: string): Promise<Module> {
-        if(LoadedModules[name][1] != ModuleStatus.Loaded){
+        if(LoadedModules[name][1] == ModuleStatus.Loaded){
             throw new Error("Module is already loaded");
         }
 
-        let p = path.resolve(this.base, name, "module");
+        let p = path.resolve(this.base, name, "module.js");
 
         delete require.cache[p];
         let mod = new (<ModuleConstructor> (require(p)))();

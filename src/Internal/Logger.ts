@@ -11,8 +11,8 @@ import { Formatting, IDisposable } from "./Types";
  * Possible log levels for a {@link LogMessage}.
  */
 export enum LogLevel {
-    Debug,
     Trace,
+    Debug,
     Warning,
     Error,
     Info
@@ -110,10 +110,14 @@ export class Logger implements IDisposable {
         this.minConsoleLevel = minConsoleLevel;
         if(filename){
             try {
-                this.stream = fs.createWriteStream(filename, "a");
+                this.stream = fs.createWriteStream(filename, {
+                    flags: "a",
+                    encoding: "utf8"
+                });
                 this.minFileLevel = minFileLevel;
             } catch(e){
                 this.stream = null;
+                console.error(e.stack);
             }
         }
     }
@@ -127,7 +131,7 @@ export class Logger implements IDisposable {
             process.stderr.write(message.ToString() + "\n");
 
         if(this.stream && message.level >= this.minFileLevel)
-            this.stream.write(message.ToSafeString());
+            this.stream.write(message.ToSafeString() + "\n");
     }
 
     /**
@@ -136,7 +140,7 @@ export class Logger implements IDisposable {
      * @param source The source module of the message.
      */
     public Info(message: string, source?: string): void {
-        return this.Log(new LogMessage(message, LogLevel.Info, source || undefined));
+        return this.Log(new LogMessage(message, LogLevel.Info, source || this.defaultSource || undefined));
     }
 
     /**
@@ -145,7 +149,7 @@ export class Logger implements IDisposable {
      * @param source The source module of the message.
      */
     public Error(message: string, source?: string): void {
-        return this.Log(new LogMessage(message, LogLevel.Error, source || undefined));
+        return this.Log(new LogMessage(message, LogLevel.Error, source || this.defaultSource || undefined));
     }
 
     /**
@@ -154,7 +158,7 @@ export class Logger implements IDisposable {
      * @param source The source module of the message.
      */
     public Warn(message: string, source?: string): void {
-        return this.Log(new LogMessage(message, LogLevel.Warning, source || undefined));
+        return this.Log(new LogMessage(message, LogLevel.Warning, source || this.defaultSource || undefined));
     }
 
     /**
@@ -163,7 +167,7 @@ export class Logger implements IDisposable {
      * @param source The source module of the message.
      */
     public Trace(message: string, source?: string): void {
-        return this.Log(new LogMessage(message, LogLevel.Trace, source || undefined));
+        return this.Log(new LogMessage(message, LogLevel.Trace, source || this.defaultSource || undefined));
     }
 
     /**
@@ -172,7 +176,7 @@ export class Logger implements IDisposable {
      * @param source The source module of the message.
      */
     public Debug(message: string, source?: string): void {
-        return this.Log(new LogMessage(message, LogLevel.Debug, source || undefined));
+        return this.Log(new LogMessage(message, LogLevel.Debug, source || this.defaultSource || undefined));
     }
 
     /**
@@ -181,7 +185,7 @@ export class Logger implements IDisposable {
     public async destroy() {
         let err = new Error("Logger destroyed");
         err.name = "";
-        this.Debug(<string> err.stack);
+        this.Trace(<string> err.stack);
         
         if(this.stream)
             this.stream.close();

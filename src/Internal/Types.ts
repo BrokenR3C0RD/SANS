@@ -267,9 +267,9 @@ export class Version {
      * @param dependency A version to compare with.
      */
     public IsCompatible(dependency: Version): boolean {
-        return (dependency.major !== this.major ||
-                dependency.minor < this.minor   ||
-                dependency.patch < this.patch);
+        return (dependency.major == this.major ||
+                dependency.minor <= this.minor ||
+                dependency.patch <= this.patch);
     }
 }
 

@@ -9,6 +9,7 @@ import { Module, Version, parentPath, Formatting, LoadedModules } from "../../Mo
 import path from "path";
 import IniConfig from "./Config/Ini";
 import MysqlConfig from "./Config/Mysql";
+import mysql from "mysqL2";
 
 const logger = global.logger;
 const INI_DEFAULTS = {
@@ -76,6 +77,16 @@ export = class SystemModule extends Module {
         },
         GetConfig: async (): Promise<MysqlConfig> => {
             return <MysqlConfig> this.sqlConfig;
+        },
+        GetMysqlInfo: async (database: string): Promise<mysql.ConnectionOptions> => {
+            const config = await (this.iniConfig as IniConfig).GetValues(INI_DEFAULTS);
+            return {
+                host:     <string> config["MySQL.Host"],
+                port:   +(<string> config["MySQL.Port"]),
+                user:     <string> config["MySQL.Username"],
+                password: <string> config["MySQL.Password"],
+                database:          database
+            }
         },
         
         // Originally, this was going to be part of Load(), but since System wouldn't be finished loading yet, no functions provided

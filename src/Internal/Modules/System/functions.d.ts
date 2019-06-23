@@ -1,5 +1,6 @@
 import "../../Module";
 import MysqlConfig from "./Config/Mysql";
+import MySQL from "mysql2";
 
 declare type name = "System";
 declare module "../../Module" {
@@ -37,4 +38,14 @@ declare module "../../Module" {
      */
     // @ts-ignore
     function ModuleCall(moduleName: name, functionName: "StartModules"): Promise<void>;
+    //GetMysqlInfo
+
+    /**
+     * Returns a MySQL connection object.
+     * @param moduleName The `System` module
+     * @param functionName `GetMysqlInfo`
+     * @param database The name of the database to use
+     */
+    // @ts-ignore
+    function ModuleCall(moduleName: name, functionName: "GetMysqlInfo", database: string): Promise<MySQL.ConnectionOptions>;
 }

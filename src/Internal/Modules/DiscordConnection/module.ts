@@ -89,6 +89,14 @@ export = class DiscordConnectionModule extends Module {
         AddCommand: async (name: string, descriptor: CommandDescriptor): Promise<void> => {
             this.commands[name] = descriptor;
         },
+        RegisterCommands: async (commands: Dictionary<CommandDescriptor>) => {
+            for(let key in commands)
+                this.commands[key] = commands[key];
+        },
+        UnregisterCommands: async (commands: string[]) => {
+            for(let cmd of commands)
+                delete this.commands[cmd];
+        },
 
         // Practically the only use for this is to allow this module to report on its own reload.
         __reply: async (message: Discord.Message, response: string): Promise<void> => {
@@ -226,20 +234,20 @@ export = class DiscordConnectionModule extends Module {
                         return;
                     try {
                         let unloaded = await global.loader.UnloadModule(mod);
-                        let loaded = await Promise.all(unloaded.map(mod => global.loader.LoadModule(mod)));
-                        let client = <Discord.Client> this.client;
+                        await Promise.all(unloaded.map(mod => global.loader.LoadModule(mod)));
                         
                         let modu = <Module> LoadedModules[mod][0];
                         if(mod !== "DiscordConnection")
                             await message.reply("Reloaded module **" + modu.Name + "** version " + modu.Version.toString());
                         else
-                            await ModuleCall("DiscordConnection", "__reply", message, "Reloaded module **" + modu.Name + "** version " + modu.Version.toString());
+                            await modu.Functions["__reply"].call(modu, message, "Reloaded module **" + modu.Name + "** version " + modu.Version.toString());
                     } catch(e) {
                         global.logger.Error(e.stack);
                         if(mod !== "DiscordConnection" || LoadedModules[mod][1] == ModuleStatus.Loaded){
                             await message.reply("Failed to reload " + mod);
                         } else {
-                            await this.destroy();
+                            if(!this.destroyed)
+                                await this.destroy();
                         }
                     }
                 } else {

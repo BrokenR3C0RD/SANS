@@ -109,7 +109,7 @@ export abstract class Module implements IDisposable {
 /**
  * All modules and their status.
  */
-export var LoadedModules: Dictionary<[Module, ModuleStatus.Loaded] | [null, ModuleStatus.Failure | ModuleStatus.Loading | ModuleStatus.Unloaded]> = {};
+export var LoadedModules: Dictionary<[Module, ModuleStatus.Loaded, Promise<Module>] | [null, ModuleStatus.Loading, Promise<Module>] | [null, ModuleStatus.Failure | ModuleStatus.Unloaded, Promise<null>]> = {};
 
 /**
  * Calls a function provided by another module.
@@ -117,6 +117,7 @@ export var LoadedModules: Dictionary<[Module, ModuleStatus.Loaded] | [null, Modu
  * @param functionName The name of the function to call.
  * @param args The arguments for the function, if needed.
  */
+export function ModuleCall(moduleName: string, functionName: string, ...args: never[]): Promise<any>;
 export async function ModuleCall(moduleName: string, functionName: string, ...args: any[]): Promise<any> {
     if(moduleName in LoadedModules && LoadedModules[moduleName][1] == ModuleStatus.Loaded){
         let mod = <Module> LoadedModules[moduleName][0];
@@ -166,10 +167,16 @@ export class ModuleLoader implements IFactory<Module> {
      */
     protected async resolveDependencies(deps: Dependencies): Promise<void>{
         for(let [name, version] of Object.entries(deps)){
-            if(name in LoadedModules && LoadedModules[name][1] == ModuleStatus.Loaded){
-                if(!version.IsCompatible((<Module> LoadedModules[name][0]).Version)){
-                    throw new Error(`Dependency load failure: expected ${name} >= version ${version.toString()}, got version ${(<Module>LoadedModules[name][0]).Version.toString()}.`);
-                }
+            if(name in LoadedModules && (LoadedModules[name][1] == ModuleStatus.Loading || LoadedModules[name][1] == ModuleStatus.Loaded)){
+                try {
+                    let mod = await LoadedModules[name][2] as Module;
+                    if(!version.IsCompatible(mod.Version)){
+                        throw new Error(`Dependency load failure: expected ${name} >= version ${version.toString()}, got version ${mod.Version.toString()}.`);
+                    }
+                } catch(e) {
+                    throw new Error(`Dependency load failure: expected ${name} >= version ${version.toString()}, got failed module load.`);
+                };
+                continue;
             } else {
                 try {
                     await this.LoadModule(name);
@@ -214,15 +221,30 @@ export class ModuleLoader implements IFactory<Module> {
      * @param name The name of the module to load.
      */
     public async LoadModule(name: string): Promise<void> {
-        LoadedModules[name] = [null, ModuleStatus.Loading];
+        if(name in LoadedModules && LoadedModules[name][1] == ModuleStatus.Loaded)
+            return;
+        
+        LoadedModules[name] = [null, ModuleStatus.Loading, <Promise<Module>> new Promise((resolve, reject) => {
+            let x = setInterval(() => {
+                if(LoadedModules[name])
+                    if(LoadedModules[name][1] == ModuleStatus.Failure){
+                        clearInterval(x);
+                        return reject("loading failure");
+                    } else if(LoadedModules[name][1] == ModuleStatus.Loaded){
+                        clearInterval(x);
+                        return resolve(<Module> LoadedModules[name][0]);
+                    }
+            }, 300);
+        })];
+
         try {
             let mod = await this.create(name);
             await this.resolveDependencies(mod.Dependencies);
             await mod.Load();
             
-            LoadedModules[name] = [mod, ModuleStatus.Loaded]
+            LoadedModules[name] = [mod, ModuleStatus.Loaded, Promise.resolve(mod)];
         } catch(e){
-            LoadedModules[name] = [null, ModuleStatus.Failure];
+            LoadedModules[name] = [null, ModuleStatus.Failure, Promise.resolve(null)];
             throw e;
         }
     }
@@ -237,7 +259,7 @@ export class ModuleLoader implements IFactory<Module> {
         for(let mod in LoadedModules){
             if(LoadedModules[mod][1] == ModuleStatus.Loaded){
                 if(name in (<Module> LoadedModules[mod][0]).Dependencies){
-                    output.push(name);
+                    output.push(mod);
                 }
             }
         }
@@ -261,7 +283,7 @@ export class ModuleLoader implements IFactory<Module> {
         await (<Module> LoadedModules[name][0]).Unload();
         await (<Module> LoadedModules[name][0]).destroy();
 
-        LoadedModules[name] = [null, ModuleStatus.Unloaded];
-        return dependents.concat([name]);
+        LoadedModules[name] = [null, ModuleStatus.Unloaded, Promise.resolve(null)];
+        return [name].concat(dependents);
     }
 }

@@ -3,7 +3,7 @@
     FiveM Identities Library module
     (c) 2019 MasterR3C0RD
 */
-import { Module, Version, parentPath, Formatting, LoadedModules, ModuleCall, Config, Dictionary, ModuleStatus } from "../../Module";
+import { Module, Version, parentPath, Formatting, LoadedModules, ModuleCall, Config, Dictionary, ModuleStatus, CommandDescriptor } from "../../Module";
 import MySQL from "mysql2/promise";
 
 const logger = global.logger;
@@ -66,9 +66,12 @@ export = class FiveMIdentities extends Module {
                 };
             }).sort((a, b) => b.lastUsed.valueOf() - a.lastUsed.valueOf());
 
-            let identifiers = (<MySQL.RowDataPacket[][]>await database.query("SELECT id FROM userids WHERE uid = ?", [
+            let idrows = (<MySQL.RowDataPacket[][]>await database.query("SELECT userids.id, police.dept, police.rank FROM userids LEFT JOIN police ON userids.id = police.identifier WHERE uid = ?", [
                 uid
-            ]))[0].map(row => row.id);
+            ]))[0];
+            let identifiers = idrows.map(row => row.id);
+            let deptrow = idrows.find(row => row.dept) || { dept: -1, rank: -1 };
+            let dept: [number, number] = [deptrow.dept as number, deptrow.rank as number];
 
             let total: UserPlayTime = ((<MySQL.RowDataPacket[][]>await database.query("SELECT days, hours, minutes, seconds FROM usertimes_total WHERE uid = ?", [uid]))[0].map(row => {
                 return {
@@ -78,11 +81,11 @@ export = class FiveMIdentities extends Module {
                     seconds: row.seconds
                 };
             })[0]) || {
-                days: 0,
-                hours: 0,
-                minutes: 0,
-                seconds: 0
-            }
+                    days: 0,
+                    hours: 0,
+                    minutes: 0,
+                    seconds: 0
+                }
 
             let weekly: UserPlayTime = ((<MySQL.RowDataPacket[][]>await database.query("SELECT days, hours, minutes, seconds FROM usertimes_weekly WHERE uid = ?", [uid]))[0].map(row => {
                 return {
@@ -92,11 +95,11 @@ export = class FiveMIdentities extends Module {
                     seconds: row.seconds
                 };
             })[0]) || {
-                days: 0,
-                hours: 0,
-                minutes: 0,
-                seconds: 0
-            }
+                    days: 0,
+                    hours: 0,
+                    minutes: 0,
+                    seconds: 0
+                }
 
             let monthly: UserPlayTime = ((<MySQL.RowDataPacket[][]>await database.query("SELECT days, hours, minutes, seconds FROM usertimes_monthly WHERE uid = ?", [uid]))[0].map(row => {
                 return {
@@ -106,13 +109,13 @@ export = class FiveMIdentities extends Module {
                     seconds: row.seconds
                 };
             })[0]) || {
-                days: 0,
-                hours: 0,
-                minutes: 0,
-                seconds: 0
-            }
+                    days: 0,
+                    hours: 0,
+                    minutes: 0,
+                    seconds: 0
+                }
 
-            let codes = (<MySQL.RowDataPacket[][]> await database.query("SELECT cd FROM usercodes WHERE uid = ?", [uid]))[0].map(row => row.cd);
+            let codes = (<MySQL.RowDataPacket[][]>await database.query("SELECT cd FROM usercodes WHERE uid = ?", [uid]))[0].map(row => row.cd);
 
             return {
                 uid: uid,
@@ -125,48 +128,93 @@ export = class FiveMIdentities extends Module {
                     weekly: weekly
                 },
                 identifiers: identifiers,
-                codes: codes
+                codes: codes,
+                department: dept
             }
         },
         SetCode: async (user: UserInfo, code: number): Promise<void> => {
             const database = <MySQL.Connection>this.database;
             await database.query(
                 user.codes.indexOf(code) !== -1
-                ? "DELETE FROM usercodes WHERE uid = ? AND cd = ?"
-                : "INSERT INTO usercodes (uid, cd) VALUES (?, ?)",
+                    ? "DELETE FROM usercodes WHERE uid = ? AND cd = ?"
+                    : "INSERT INTO usercodes (uid, cd) VALUES (?, ?)",
                 [user.uid, code]);
-            
-            if(user.codes.indexOf(code) == -1)
+
+            if (user.codes.indexOf(code) == -1)
                 user.codes.push(code);
             else
                 user.codes.splice(user.codes.indexOf(code), 1);
         },
         SetDept: async (user: UserInfo, deptid: number, rankid: number) => {
-
+            const database = <MySQL.Connection>this.database;
+            let id = <string>user.identifiers.find(id => id.indexOf("license:") == 0);
+            await database.query("INSERT INTO police (identifier, dept, rank) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE dept = ?, rank = ?", [
+                id,
+                deptid, rankid,
+                deptid, rankid
+            ]);
+        },
+        SetPerm: async (user: UserInfo, perm: string, allow: boolean = true) => {
+            const database = <MySQL.Connection>this.database;
+            await database.query("INSERT INTO userpermissions (uid, node, allow) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE allow = ?", [
+                user.uid,
+                perm,
+                allow,
+                allow
+            ]);
         }
     }
 
     private database: MySQL.Connection | null = null;
 
+    private commands: Dictionary<CommandDescriptor> = {
+        "lookup": {
+            callback: async (command, args, user, message) => {
+                let id = args[0];
+                let discord = /^<@([0-9]+)>$/.exec(id);
+                if(discord){
+                    id = "discord:" + discord[1];
+                }
+                
+                try {
+                    let user = await this.Functions.GetUser(id);
+
+                } catch(e){
+                    logger.Error(e.stack);
+                    await message.reply("Failed to lookup `" + id + "`");
+                }
+            },
+            description: "Looks up information about a user, like playtime.",
+            arguments: {
+                "user": "The user to check information for. Can be a FiveM identifier, their SANS UID, or a Discord mention"
+            },
+            usage: [
+                "%c <@227551426232975361>",
+                "Gets MasterR3C0RD's information."
+            ]
+        }
+    };
+
     public async Load() {
         const config = await ModuleCall("System", "GetConfig");
         await config.Defaults(defaults);
         const data = await config.GetValues(defaults);
-        this.database = await MySQL.createConnection(await ModuleCall("System", "GetMysqlInfo", data["IdentityDatabase"]));
+        this.database = await MySQL.createConnection(await ModuleCall("System", "GetMysqlInfo", data["IdentityDatabase"] as string));
         this.database.on("error", err => {
             logger.Error(err.stack);
+            logger.Info("Will attempt to reconnect to database in 5 seconds.");
             setTimeout(() => {
-                MySQL
-                    .createConnection(await ModuleCall("System", "GetMysqlInfo", data["IdentityDatabase"]))
+                ModuleCall("System", "GetMysqlInfo", data["IdentityDatabase"] as string)
+                    .then(data => MySQL.createConnection(data))
                     .then(conn => this.database = conn);
             }, 5000);
         });
         logger.Info("Connected to identities database");
-
-        console.log(await this.Functions.GetUser("2"));
+        await ModuleCall("DiscordConnection", "RegisterCommands", this.commands);
+        logger.Info("Registered commands");
     }
 
     public async Unload() {
-
+        await ModuleCall("DiscordConnection", "UnregisterCommands", Object.keys(this.commands));
     }
 }

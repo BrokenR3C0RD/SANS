@@ -32,6 +32,9 @@ export = class SystemModule extends Module {
     public Functions = {
         LoadModule: async (name: string): Promise<boolean> =>  {
             try {
+                if(name == "System")
+                    return false;
+
                 let sql = <MysqlConfig> this.sqlConfig;
                 logger.Info("Loading module " + name);
                 await global.loader.LoadModule(name);
@@ -52,6 +55,9 @@ export = class SystemModule extends Module {
         },
         UnloadModule: async (name: string): Promise<boolean> => {
             try {
+                if(name == "System")
+                    return false;
+                
                 let sql = <MysqlConfig> this.sqlConfig;
                 logger.Info("Unloading module " + name);
                 await global.loader.UnloadModule(name);
@@ -62,16 +68,40 @@ export = class SystemModule extends Module {
 
                 let module = <Module> LoadedModules[name][0];
                 logger.Info("Unloaded module " + name);
-
                 return true;
             } catch(e){
                 global.logger.Error("Error loading module: " + e.stack);
                 return false;
             }
+        },
+        GetConfig: async (): Promise<MysqlConfig> => {
+            return <MysqlConfig> this.sqlConfig;
+        },
+        
+        // Originally, this was going to be part of Load(), but since System wouldn't be finished loading yet, no functions provided
+        // by it would be usable (this woud cause an error like `Error: Attempted to call GetConfig from System but module is not loaded.`)
+        // As such, Runner now has to run this function through ModuleCall (which isn't that big of a deal, just goes to show that it's
+        // a very powerful asset even inside internal code)
+        StartModules: async(): Promise<void> => {
+            logger.Debug("Loading MySQL configuration...");
+            const dbcfg = await (<MysqlConfig> this.sqlConfig).GetValues(MYSQL_DEFAULTS);
+            
+            logger.Info("Loading modules...");
+            const modules = this.modules = (<string> dbcfg["Modules"]).split(" ");
+    
+            await Promise.all(modules.map(async (name) => {
+                    await global.loader.LoadModule(name)
+                    const module = <Module> LoadedModules[name][0];
+                    logger.Info(Formatting.Format("Loaded %n v%v", {
+                        n: module.Name,
+                        v: module.Version.toString()
+                    }));
+            }));
+            logger.Info("All modules loaded.");
         }
     };
 
-    private iniConfig: IniConfig;
+    private iniConfig: IniConfig | null = null;
     private sqlConfig: MysqlConfig | null = null;
     private modules: string[] = [];
 
@@ -80,17 +110,17 @@ export = class SystemModule extends Module {
         if(!global.loader.APIVersion.IsCompatible(this.Version)){
             throw new Error("System module is incompatible with the current API version.");
         }
-        this.iniConfig = new IniConfig(path.join(parentPath, "system.ini"));
     }
 
     public async Load() {
+        const ini = this.iniConfig = new IniConfig(path.join(parentPath, "system.ini"));
         logger.Debug("Loading INI configuration...", this.Name);
-        await this.iniConfig.Ready();
-        await this.iniConfig.Defaults(INI_DEFAULTS);
-        let bootcfg = await this.iniConfig.GetValues(INI_DEFAULTS);
+        await ini.Ready();
+        await ini.Defaults(INI_DEFAULTS);
+        const bootcfg = await ini.GetValues(INI_DEFAULTS);
 
         logger.Debug("Connecting to MySQL server...");
-        let sql = this.sqlConfig = new MysqlConfig({
+        const sql = this.sqlConfig = new MysqlConfig({
             username: <string> bootcfg["MySQL.Username"],
             password: <string> bootcfg["MySQL.Password"],
             host:     <string> bootcfg["MySQL.Host"],
@@ -100,20 +130,6 @@ export = class SystemModule extends Module {
         });
         await sql.Ready();
         await sql.Defaults(MYSQL_DEFAULTS);
-        logger.Debug("Loading MySQL configuration...");
-        let dbcfg = await sql.GetValues(MYSQL_DEFAULTS);
-        
-        logger.Info("Loading modules...");
-        let modules = this.modules = (<string> dbcfg["Modules"]).split(" ");
-        await Promise.all(modules.map(name => async () => {
-            await global.loader.LoadModule(name)
-            let module = <Module> LoadedModules[name][0];
-            logger.Info(Formatting.Format("Loaded %n v%v", {
-                n: module.Name,
-                v: module.Version.toString()
-            }));
-        }));
-        logger.Info("All modules loaded.");
     }
 
     public async Unload() {

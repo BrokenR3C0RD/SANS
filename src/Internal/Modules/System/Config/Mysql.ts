@@ -127,7 +127,7 @@ class MysqlConfiguration implements ConfigurationDriver {
                 .execute("SELECT value FROM `" + this.table + "` WHERE name = ?", [key])
                 .then(rows => {
                     let row = (<MySQL.RowDataPacket[]> rows[0])[0] as MySQL.RowDataPacket;
-                    return resolve(row.value || row.value === 0 ? 0 : row.value === "" ? "" : (defaultValue || null));
+                    return resolve(row.value || (row.value === 0 ? 0 : row.value === "" ? "" : (defaultValue || null)));
                 })
                 .catch(err => reject(err));
         });

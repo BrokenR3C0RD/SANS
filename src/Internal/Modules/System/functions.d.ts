@@ -1,7 +1,9 @@
 import "../../Module";
+import MysqlConfig from "./Config/Mysql";
 
 declare type name = "System";
 declare module "../../Module" {
+    export type Config = MysqlConfig;
     /**
      * Loads a module and adds it to the startup load list.
      * @param moduleName The `System` module
@@ -19,4 +21,20 @@ declare module "../../Module" {
      */
     // @ts-ignore
     function ModuleCall(moduleName: name, functionName: "UnloadModule", name: string): Promise<boolean>;
+
+    /**
+     * Returns the configuration object used for storing system configuration.
+     * @param moduleName The `System` module
+     * @param functionName `GetConfig`
+     */
+    // @ts-ignore
+    function ModuleCall(moduleName: name, functionName: "GetConfig"): Promise<MysqlConfig>;
+
+    /**
+     * Starts all modules.
+     * @param moduleName The `System` module
+     * @param functionName `StartModules`
+     */
+    // @ts-ignore
+    function ModuleCall(moduleName: name, functionName: "StartModules"): Promise<void>;
 }

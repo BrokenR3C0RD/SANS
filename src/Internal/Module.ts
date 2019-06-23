@@ -16,7 +16,6 @@ while(parent.parent != null)
 
 /** The parent directory of the bot. */
 export let parentPath = path.dirname(parent.filename);
-console.log(parentPath);
 
 /**
  * The current module API version provided.
@@ -132,6 +131,8 @@ export async function ModuleCall(moduleName: string, functionName: string, ...ar
     }
 }
 
+const Startup = new Date();
+
 /**
  * A factory for Modules.
  */
@@ -150,6 +151,13 @@ export class ModuleLoader implements IFactory<Module> {
      */
     public get APIVersion(): Version {
         return APIVersion;
+    }
+
+    /**
+     * When the bot was started.
+     */
+    public get Started(): Date {
+        return Startup;
     }
 
     /**
@@ -254,6 +262,6 @@ export class ModuleLoader implements IFactory<Module> {
         await (<Module> LoadedModules[name][0]).destroy();
 
         LoadedModules[name] = [null, ModuleStatus.Unloaded];
-        return [name].concat(dependents);
+        return dependents.concat([name]);
     }
 }

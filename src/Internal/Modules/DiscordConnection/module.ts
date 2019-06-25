@@ -140,7 +140,7 @@ export = class DiscordConnectionModule extends Module {
                         .setTitle("help: Help for __" + this.prefix + cmd + "__")
                         .setColor("GREEN")
                         .addField("**Description:**", desc.description, true)
-                        .addField("**Arguments:**", Object.keys(desc.arguments).map(arg => `\\- **${arg}** - ${desc.arguments[arg]}`).join("\n"), true)
+                        .addField("**Arguments:**", (Object.keys(desc.arguments).map(arg => `\\- **${arg}** - ${desc.arguments[arg]}`).join("\n")) || "None", true)
                         .addField("**Example:**", "__" + Formatting.Format(desc.usage[0], { "c": this.prefix + cmd }) + "__\n *-> " + desc.usage[1] + "*", true)
                         .setFooter("💀 SANS, By MasterR3C0RD");
 

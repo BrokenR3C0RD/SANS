@@ -61,7 +61,7 @@ interface UserInfo {
 declare module "../../Module" {
     /**
      * Looks up a user and returns their information.
-     * @param moduleName The `DiscordConnection` module
+     * @param moduleName The `FiveM-Identities` module
      * @param functionName `GetUser`
      * @param id The identifier to look up by.
      */
@@ -70,7 +70,7 @@ declare module "../../Module" {
 
     /**
      * Toggles a user's staff code.
-     * @param moduleName The `DiscordConnection` module
+     * @param moduleName The `FiveM-Identities` module
      * @param functionName `SetCode`
      * @param user The user to modify.
      * @param code The code to set.
@@ -80,7 +80,7 @@ declare module "../../Module" {
 
     /**
      * Sets a user's police department and rank.
-     * @param moduleName The `DiscordConnection` module
+     * @param moduleName The `FiveM-Identities` module
      * @param functionName `SetDept`
      * @param user The user to modify.
      * @param deptid The department identifier.
@@ -91,7 +91,7 @@ declare module "../../Module" {
 
     /**
      * Sets a user's permission.
-     * @param moduleName The `DiscordConnection` module
+     * @param moduleName The `FiveM-Identities` module
      * @param functionName `SetPerm`
      * @param user The user to set, or `null` if the permission should apply to all users.
      * @param perm The name of the permission to set.

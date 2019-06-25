@@ -1,0 +1,95 @@
+# Department roles and such
+
+# [number in roster] [name of department]
+# Example:
+0 Fire Department
+  # [number in roster] [name of police rank]
+  # Example:
+  0 Trainee
+    # [discord role id] [description of role]
+    # Example:
+    486913069973241885 Volunteer
+    486905886561009684 Cadet
+  4 Fighter
+    # Nothing
+  8 Fighter II
+    486905813487714315 Firefighter/EMT-B
+  12 Sergeant
+    486905605055840257 Engineer
+  16 Lieutenant
+    486905381990301699 Lieutenant
+  20 Captain
+    486905104801202177 Captain
+  24 Assistant Chief
+    486904961356005408 Battalion Chief
+    489513984794427404 Assistant Chief
+  28 Chief
+    486894801028120580 Chief
+
+1 Los Santos Police Department
+  1 Trainee
+    486897741574701076 Cadet
+  5 Officer
+    486897670229590016 Officer
+    503729817175457793 Reserve Officer
+    503769895276773376 Chief of Staff
+    518965675524358154 Deputy Chief of Staff
+  9 Officer II
+    504036775564673024 Senior Officer
+    518966251222204416 Reserve Senior Officer
+    486896739622715392 Corporal
+    534856750369603594 Senior Corporal
+  13 Sergeant
+    486896492888588288 Sergeant
+    528981235318390824 Reserve Supervisor
+    505543461110415361 Staff Sergeant
+  17 Lieutenant
+    486895722336223242 Lieutenant
+  21 Captain
+    486895651247095849 Captain
+    511772903268941826 Commander
+  25 Assistant Chief
+    486895551284248586 Deputy Chief
+    511770112827719680 Precinct Chief
+    511772200919891981 Deputy Precinct Chief
+  29 Chief
+    486895384631705630 Chief of Police
+
+2 Blaine County Sheriff's Office
+  2 Trainee
+    486897742556430337 Cadet
+  6 Deputy Sheriff
+    486904126077403146 Deputy
+  10 Deputy Sheriff II
+    486904052647723008 Corporal
+  14 Sergeant
+    486903970644754462 Sergeant
+  18 Lieutenant
+    486903830567583786 Lieutenant
+  22 Captain
+    486903351137533962 Captain
+  26 Assistant Sheriff
+    486903225421660180 Chief Deputy
+  30 Sheriff
+    486901804005851136 Sheriff
+
+3 San Andreas State Troopers
+  3 Trainee
+    486899510014902274 Cadet
+  7 Trooper
+    486899443619332096 Trooper
+  11 Trooper II
+    486899215168045077 Senior Trooper
+  15 Sergeant
+    486885760625278977 Sergeant
+    519962153395027968 Staff Sergeant
+  19 Lieutenant
+    486885595507851266 Lieutenant
+  23 Captain
+    486913345262452757 CoD
+    486885551476047904 Captain
+  27 Assistant Chief Trooper
+    486885445636980779 Deputy Commissioner
+  31 State Chief
+    486885398992257036 Commissioner
+    517955957947367424 Interim Commissioner

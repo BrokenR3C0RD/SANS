@@ -50,12 +50,26 @@ export = class FiveMIdentities extends Module {
     public Version = new Version(1, 0, 0);
 
     public Dependencies = {
-        "DiscordConnection": new Version(1, 0, 0)
+        "DiscordConnection": new Version(1, 0, 0),
+        "FiveM-Query": new Version(1, 0, 0)
     };
 
     public Functions = {
         GetUser: async (id: string): Promise<UserInfo | null> => {
-            const database = <MySQL.Connection>this.database;
+            const database = <MySQL.Connection> this.database;
+            if(id.split(":")[0] == "server"){ // server:Public#5
+                let part = id.split(":").slice(1).join(":");
+                let parts = part.split("#");
+                let ip = parts[0];
+                let i = +parts[1];
+
+                let server = await ModuleCall("FiveM-Query", "GetServerInfo", ip);
+                let player = server.players.find(player => player.id == i);
+                if(player == null)
+                    return null;
+
+                id = <string> player.identifiers.find(id => id.indexOf("license:") == 0);
+            }
 
             let rows = <MySQL.RowDataPacket[]> (await database.query("SELECT users.uid AS uid, users.first_connect AS first_connect, users.last_connect AS last_connect, usernames.name AS name, usernames.last_used AS last_used FROM usernames LEFT JOIN users ON users.uid = usernames.uid WHERE usernames.uid = "
                 + (isNaN(parseInt(id)) ? "(SELECT uid FROM userids WHERE id = ?)" : "?"), [
@@ -79,7 +93,7 @@ export = class FiveMIdentities extends Module {
                 uid
             ]))[0];
             let identifiers = idrows.map(row => row.id);
-            let deptrow = idrows.find(row => row.dept) || { dept: -1, rank: -1 };
+            let deptrow = idrows.find(row => row.dept != null && row.rank != null) || { dept: -1, rank: -1 };
             let dept: [number, number] = [deptrow.dept as number, deptrow.rank as number];
 
             let total: UserPlayTime = ((<MySQL.RowDataPacket[][]>await database.query("SELECT days, hours, minutes, seconds FROM usertimes_total WHERE uid = ?", [uid]))[0].map(row => {
@@ -362,7 +376,7 @@ export = class FiveMIdentities extends Module {
                                 case "discord":
                                     return `**${type}**:${id} (<@${id}>)`;
                                 case "steam":
-                                    return `**${type}**:${id} ([Link](https://steamcommunity.com/profile/${toDec(id)}))`;
+                                    return `**${type}**:${id} ([Link](https://steamcommunity.com/profiles/${toDec(id)}))`;
                                 default:
                                     return `**${type}**:${id}`;
                             }
@@ -388,7 +402,6 @@ export = class FiveMIdentities extends Module {
                             m: user.playtime.weekly.minutes,
                             s: user.playtime.weekly.seconds
                         }), true)
-
                         .setColor("ORANGE")
                         .setFooter("All times are " + Formatting.FormatTime(user.firstConnect, "%Z") + " | 💀 SANS, By MasterR3C0RD");
                     if(extra)

@@ -1,0 +1,98 @@
+# Format:
+# [role ID] [name]
+# [role ID] [name]
+# ...
+#     [permission node]
+#     [permission node]
+#     ...
+
+# Available permission nodes:
+# - easyadmin
+#   - kick
+#   - ban
+#   - spectate
+#   - teleport
+#   - slap
+#   - freeze
+#   - unban
+#   - manageserver
+#
+# - AOVSM
+#   - admin
+#
+# - chatforadmin
+#   - admin
+#
+# - Fax
+#   - owner
+#   - snradmin
+#   - fadmin
+#   - member3
+#   - member2
+#   - member1
+#
+# - GunDelObj
+#   - admin
+#
+# - sastrainer
+#   - admin
+#
+# - SuperHUD
+#   - staffaop
+#   - priority
+#
+# - vSync
+#   - admin
+
+
+# description: God role
+392828463956099073 Owner
+513863481657786379 Chief of Staff
+516395428221157386 Asst Chief of Staff
+486949373092167704 Head Developer
+486881472058228747 Head Administrator
+    easyadmin
+    AOVSM.admin
+    chatforadmin.admin
+    Fax.owner
+    GunDelObj.admin
+    sastrainer.admin
+    SuperHUD
+    vSync.admin
+
+# description: Administrator
+486875248763994122 Administrator
+    easyadmin.kick
+    easyadmin.ban
+    easyadmin.spectate
+    easyadmin.teleport
+    easyadmin.slap
+    easyadmin.freeze
+    easyadmin.unban
+    sastrainer.admin
+    SuperHUD.priority
+    SuperHUD.staffaop
+    vSync.admin
+
+# description: Moderator/Developer
+486883087503065103 Senior Moderator
+541463157369995284 Moderator
+486949511286226954 Development Team
+    easyadmin.kick
+    easyadmin.ban
+    easyadmin.spectate
+    easyadmin.teleport
+    easyadmin.freeze
+    sastrainer.admin
+    SuperHUD.priority
+    SuperHUD.staffaop
+    vSync.admin
+
+# description: Server Helper
+486979895663263765 Server Helper
+    easyadmin.kick
+    easyadmin.spectate
+    easyadmin.teleport
+    easyadmin.freeze
+    SuperHUD.priority
+    vSync.admin

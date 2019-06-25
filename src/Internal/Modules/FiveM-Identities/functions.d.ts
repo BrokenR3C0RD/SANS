@@ -60,11 +60,43 @@ interface UserInfo {
 
 declare module "../../Module" {
     /**
-     * Returns a copy to the Discord Client object.
+     * Looks up a user and returns their information.
      * @param moduleName The `DiscordConnection` module
-     * @param functionName `GetClient`
+     * @param functionName `GetUser`
+     * @param id The identifier to look up by.
      */
     // @ts-ignore
-    function ModuleCall(moduleName: name, functionName: "GetClient"): Promise<Discord.Client>;
+    function ModuleCall(moduleName: name, functionName: "GetUser", id: string): Promise<UserInfo | null>;
 
+    /**
+     * Toggles a user's staff code.
+     * @param moduleName The `DiscordConnection` module
+     * @param functionName `SetCode`
+     * @param user The user to modify.
+     * @param code The code to set.
+     */
+    // @ts-ignore
+    function ModuleCall(moduleName: name, functionName: "SetCode", user: UserInfo, code: number): Promise<void>;
+
+    /**
+     * Sets a user's police department and rank.
+     * @param moduleName The `DiscordConnection` module
+     * @param functionName `SetDept`
+     * @param user The user to modify.
+     * @param deptid The department identifier.
+     * @param rankid The rank identifier.
+     */
+    // @ts-ignore
+    function ModuleCall(moduleName: name, functionName: "SetCode", user: UserInfo, deptid: number, rankid: number): Promise<void>;
+
+    /**
+     * Sets a user's permission.
+     * @param moduleName The `DiscordConnection` module
+     * @param functionName `SetPerm`
+     * @param user The user to set, or `null` if the permission should apply to all users.
+     * @param perm The name of the permission to set.
+     * @param allow True if the permission should be allowed, false if the permission should be denied
+     */
+    // @ts-ignore
+    function ModuleCall(moduleName: name, functionName: "SetPerm", user: UserInfo | null, perm: string, allow?: boolean): Promise<void>;
 }

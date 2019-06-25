@@ -1,5 +1,5 @@
 import "../../Module";
-import DiscordJS from "discord.js";
+import Discord from "discord.js";
 import { Dictionary } from "../../Module";
 
 
@@ -12,9 +12,9 @@ type CommandCallback = (
     /** An array of space-separated arguments to the command. */
     args: string[],
     /** The user who ran the command. */
-    user: DiscordJS.GuildMember,
+    user: Discord.GuildMember,
     /** The original message object, for extra information. */
-    message: DiscordJS.Message) => Promise<void>;
+    message: Discord.Message) => Promise<void>;
 
 
 
@@ -47,9 +47,9 @@ declare module "../../Module" {
         /** An array of space-separated arguments to the command. */
         args: string[],
         /** The user who ran the command. */
-        user: DiscordJS.GuildMember,
+        user: Discord.GuildMember,
         /** The original message object, for extra information. */
-        message: DiscordJS.Message) => Promise<void>;
+        message: Discord.Message) => Promise<void>;
 
     /**
      * Returns a copy to the Discord Client object.

@@ -113,7 +113,7 @@ class MysqlConfiguration implements ConfigurationDriver {
                 .connection
                 .execute("SELECT name FROM `" + this.table + "`")
                 .then(rows => {
-                    let keys: string[] = rows.map(row => (row as MySQL.RowDataPacket).key);
+                    let keys: string[] = (rows[0] as MySQL.RowDataPacket[]).map(row => (row as MySQL.RowDataPacket).name);
                     return resolve(keys);
                 })
                 .catch(err => reject(err));

@@ -101,8 +101,7 @@ export = class DiscordConnectionModule extends Module {
         // Practically the only use for this is to allow this module to report on its own reload.
         __reply: async (message: Discord.Message, response: string): Promise<void> => {
             let client = <Discord.Client>this.client;
-            let guild = <Discord.Guild>client.guilds.get(message.guild.id);
-            let channel = <Discord.TextChannel>guild.channels.get(message.channel.id);
+            let channel = <Discord.TextChannel>client.channels.get(message.channel.id);
             let msg = await channel.fetchMessage(message.id);
             await msg.reply(response);
         }
@@ -233,6 +232,7 @@ export = class DiscordConnectionModule extends Module {
                     if (mod == "System")
                         return;
                     try {
+                        logger.Info("Reloading " + mod);
                         let unloaded = await global.loader.UnloadModule(mod);
                         await Promise.all(unloaded.map(mod => global.loader.LoadModule(mod)));
 
@@ -241,6 +241,7 @@ export = class DiscordConnectionModule extends Module {
                             await message.reply("Reloaded module **" + modu.Name + "** version " + modu.Version.toString());
                         else
                             await modu.Functions["__reply"].call(modu, message, "Reloaded module **" + modu.Name + "** version " + modu.Version.toString());
+                        logger.Info("Reloaded " + modu.Name + " v" + modu.Version.toString());
                     } catch (e) {
                         global.logger.Error(e.stack);
                         if (mod !== "DiscordConnection" || LoadedModules[mod][1] == ModuleStatus.Loaded) {
@@ -272,7 +273,7 @@ export = class DiscordConnectionModule extends Module {
                         .setAuthor(`SANS, implementing API v${apiversion.toString()}`)
                         .setTitle("**Uptime**: " + uptimePretty())
                         .setColor("#7289DA")
-                        .setThumbnail("https://www.dictionary.com/e/wp-content/uploads/2018/11/skull-emoji.png")
+                        .setThumbnail("https://b.catgirlsare.sexy/xHle.png") // Yes, I am a man of culture.
                         .setFooter("💀 SANS, By MasterR3C0RD");
 
                     Object.keys(LoadedModules).forEach(name => {

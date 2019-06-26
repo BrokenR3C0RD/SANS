@@ -87,16 +87,46 @@ declare module "../../Module" {
      * @param rankid The rank identifier.
      */
     // @ts-ignore
-    function ModuleCall(moduleName: name, functionName: "SetCode", user: UserInfo, deptid: number, rankid: number): Promise<void>;
+    function ModuleCall(moduleName: name, functionName: "SetDept", user: UserInfo, deptid: number, rankid: number): Promise<void>;
+
+
+    /**
+     * Gets all of a user's permissions.
+     * @param moduleName The `FiveM-Identities` module
+     * @param functionName `GetPerms`
+     * @param user The user to get permissions for, or `null` to get the permissions that apply to all users.
+     */
+    // @ts-ignore
+    function ModuleCall(moduleName: name, functionName: "GetPerms", user: UserInfo | null): Promise<Dictionary<boolean>>;
 
     /**
      * Sets a user's permission.
      * @param moduleName The `FiveM-Identities` module
      * @param functionName `SetPerm`
-     * @param user The user to set, or `null` if the permission should apply to all users.
+     * @param user The user to modify, or `null` if the permission should apply to all users.
      * @param perm The name of the permission to set.
      * @param allow True if the permission should be allowed, false if the permission should be denied
      */
     // @ts-ignore
     function ModuleCall(moduleName: name, functionName: "SetPerm", user: UserInfo | null, perm: string, allow?: boolean): Promise<void>;
+
+    /**
+     * Sets a user's permission to join whitelisted servers..
+     * @param moduleName The `FiveM-Identities` module
+     * @param functionName `SetWhitelist`
+     * @param user The user to modify.
+     * @param allow True if the permission should be allowed, false if the permission should be denied
+     */
+    // @ts-ignore
+    function ModuleCall(moduleName: name, functionName: "SetWhitelist", user: UserInfo, allow?: boolean): Promise<void>;
+
+    /**
+     * Deletes a user's permission.
+     * @param moduleName The `FiveM-Identities` module
+     * @param functionName `DeletePerm`
+     * @param user The user to modify, or `null` if the permission should apply to all users.
+     * @param perm The name of the permission to delete.
+     */
+    // @ts-ignore
+    function ModuleCall(moduleName: name, functionName: "DeletePerm", user: UserInfo | null, perm: string): Promise<void>;
 }

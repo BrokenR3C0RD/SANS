@@ -170,12 +170,28 @@ export = class FiveMIdentities extends Module {
         },
         SetDept: async (user: UserInfo, deptid: number, rankid: number) => {
             const database = <MySQL.Connection>this.database;
-            let id = <string>user.identifiers.find(id => id.indexOf("license:") == 0);
-            await database.query("INSERT INTO police (identifier, dept, rank) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE dept = ?, rank = ?", [
-                id,
-                deptid, rankid,
-                deptid, rankid
-            ]);
+            let id = <string> (user.identifiers.find(id => id.indexOf("steam:") == 0) || user.identifiers.find(id => id.indexOf("license:") == 0));
+            if(deptid == -1 || rankid == -1)
+                await database.query("DELETE FROM police WHERE `identifier` = ?", [id]);
+            else
+                await database.query("INSERT INTO police (`identifier`, `dept`, `rank`) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE `dept` = ?, `rank` = ?", [
+                    id,
+                    deptid, rankid,
+                    deptid, rankid
+                ]);
+            user.department = [deptid, rankid];
+        },
+        GetPerms: async (user: UserInfo | null) => {
+            const database = <MySQL.Connection> this.database;
+            let rows = (<MySQL.RowDataPacket[]>(await database.query("SELECT * FROM userpermissions WHERE uid = ?", [user ? user.uid : 0]))[0]);
+            if(rows.length == 0)
+                return {};
+            
+            let out: Dictionary<boolean> = {};
+            rows.forEach(row => {
+                out[row.node] = row.allow;
+            });
+            return out;
         },
         SetPerm: async (user: UserInfo | null, perm: string, allow: boolean = true) => {
             const database = <MySQL.Connection>this.database;
@@ -185,7 +201,22 @@ export = class FiveMIdentities extends Module {
                 allow,
                 allow
             ]);
-        }
+        },
+        DeletePerm: async (user: UserInfo | null, perm: string) => {
+            const database = <MySQL.Connection>this.database;
+            await database.query("DELETE FROM userpermissions WHERE uid = ? AND node = ?", [
+                user ? user.uid : 0,
+                perm,
+            ]);
+        },
+        SetWhitelist: async (user: UserInfo, allow: boolean = true) => {
+            const database = <MySQL.Connection>this.database;
+            await database.query("INSERT INTO whitelisted (uid, allowed) VALUES (?, ?) ON DUPLICATE KEY UPDATE allowed = ?", [
+                user.uid,
+                allow,
+                allow
+            ]);
+        },
     }
 
     private database: MySQL.Connection | null = null;
@@ -269,7 +300,7 @@ export = class FiveMIdentities extends Module {
                     await message.reply("No user provided to look up.");
                     return;
                 }
-                let discord = /^<@([0-9]+)>$/.exec(id);
+                let discord = /^<@!?([0-9]+)>$/.exec(id);
                 if(discord){
                     id = "discord:" + discord[1];
                 }
@@ -342,7 +373,7 @@ export = class FiveMIdentities extends Module {
                 const extra = await ModuleCall("DiscordConnection", "IsOwner", user) || this.lookupExtRoles.reduce((acc, id) => user.roles.has(id) || acc, <boolean> false);
 
                 let id = args[0];
-                let discord = /^<@([0-9]+)>$/.exec(id);
+                let discord = /^<@!?([0-9]+)>$/.exec(id);
                 if(discord){
                     id = "discord:" + discord[1];
                 }

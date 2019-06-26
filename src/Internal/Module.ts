@@ -209,6 +209,7 @@ export class ModuleLoader implements IFactory<Module> {
 
         delete require.cache[p];
         let mod = new (<ModuleConstructor> (require(p)))();
+        delete require.cache[p];
         if(!(mod instanceof Module)){
             throw new TypeError(`${name} is not a valid module`);
         }

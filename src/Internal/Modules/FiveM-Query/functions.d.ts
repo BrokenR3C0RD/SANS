@@ -7,6 +7,8 @@ type name = "FiveM-Query";
 interface QueryInfo {
     /** Some internal FiveM thing */
     enhancedHostSupport: boolean,
+    /** The name of the server. */
+    hostname: string,
     /** The icon of the server, a base64-encoded PNG */
     icon: string,
     /** A list of all resources loaded on the server. */
@@ -60,7 +62,7 @@ interface QueryAPI {
         /** Alias for vars.sv_maxClients */
         sv_maxclients: number,
         /** The last time the server pinged the API. */
-        lastSeen: Date,
+        lastSeen: Date
     } & QueryInfo,
     /** The IP of the server. */
     EndPoint: string
@@ -92,4 +94,21 @@ declare module "../../Module" {
      */
     // @ts-ignore
     function ModuleCall(moduleName: name, functionName: "GetAPIInfo"): Promise<QueryAPI[]>;
+
+    /**
+     * Returns whether or not the server is trusted.
+     * @param moduleName The `FiveM-Query` module
+     * @param functionName `IsAllowedServer`
+     * @param ip The IP or alias of the server to test.
+     */
+    // @ts-ignore
+    function ModuleCall(moduleName: name, functionName: "IsAllowedServer", ip: string): Promise<boolean>;
+
+    /**
+     * Returns a dictionary of all trusted servers and their IPs.
+     * @param moduleName The `FiveM-Query` module
+     * @param functionName `AllowedServers`
+     */
+    // @ts-ignore
+    function ModuleCall(moduleName: name, functionName: "AllowedServers"): Promise<Dictionary<string>>;
 }

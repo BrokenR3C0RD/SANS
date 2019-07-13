@@ -37,7 +37,7 @@ export = class SystemModule extends Module {
                     return false;
 
                 let sql = <MysqlConfig> this.sqlConfig;
-                logger.Info("Loading module " + name);
+                logger.Info("Loading module " + name, "System");
                 await global.loader.LoadModule(name);
                 this.modules.push(name);
                 await sql.SetValue("Modules", this.modules.join(" "));
@@ -46,11 +46,11 @@ export = class SystemModule extends Module {
                 logger.Info(Formatting.Format("Loaded %n v%v", {
                     n: module.Name,
                     v: module.Version.toString()
-                }));
+                }), "System");
 
                 return true;
             } catch(e){
-                global.logger.Error("Error loading module: " + e.stack);
+                global.logger.Error("Error loading module: " + e.stack, "System");
                 return false;
             }
         },
@@ -60,7 +60,7 @@ export = class SystemModule extends Module {
                     return false;
                 
                 let sql = <MysqlConfig> this.sqlConfig;
-                logger.Info("Unloading module " + name);
+                logger.Info("Unloading module " + name, "System");
                 await global.loader.UnloadModule(name);
                 if(this.modules.indexOf(name) !== -1)
                     this.modules.splice(this.modules.indexOf(name), 1);
@@ -68,10 +68,10 @@ export = class SystemModule extends Module {
                 await sql.SetValue("Modules", this.modules.join(" "));
 
                 let module = <Module> LoadedModules[name][0];
-                logger.Info("Unloaded module " + name);
+                logger.Info("Unloaded module " + name, "System");
                 return true;
             } catch(e){
-                global.logger.Error("Error loading module: " + e.stack);
+                global.logger.Error("Error loading module: " + e.stack, "System");
                 return false;
             }
         },
@@ -94,10 +94,10 @@ export = class SystemModule extends Module {
         // As such, Runner now has to run this function through ModuleCall (which isn't that big of a deal, just goes to show that it's
         // a very powerful asset even inside internal code)
         StartModules: async(): Promise<void> => {
-            logger.Debug("Loading MySQL configuration...");
+            logger.Debug("Loading MySQL configuration...", "System");
             const dbcfg = await (<MysqlConfig> this.sqlConfig).GetValues(MYSQL_DEFAULTS);
             
-            logger.Info("Loading modules...");
+            logger.Info("Loading modules...", "System");
             const modules = this.modules = (<string> dbcfg["Modules"]).split(" ");
     
             await Promise.all(modules.map(async (name) => {
@@ -106,9 +106,9 @@ export = class SystemModule extends Module {
                     logger.Info(Formatting.Format("Loaded %n v%v", {
                         n: module.Name,
                         v: module.Version.toString()
-                    }));
+                    }), "System");
             }));
-            logger.Info("All modules loaded.");
+            logger.Info("All modules loaded.", "System");
         }
     };
 
@@ -125,12 +125,12 @@ export = class SystemModule extends Module {
 
     public async Load() {
         const ini = this.iniConfig = new IniConfig(path.join(parentPath, "system.ini"));
-        logger.Debug("Loading INI configuration...", this.Name);
+        logger.Debug("Loading INI configuration...", "System");
         await ini.Ready();
-        await ini.Defaults(INI_DEFAULTS);
+        await ini.Defaults(INI_DEFAULTS, false);
         const bootcfg = await ini.GetValues(INI_DEFAULTS);
 
-        logger.Debug("Connecting to MySQL server...");
+        logger.Debug("Connecting to MySQL server...", "System");
         const sql = this.sqlConfig = new MysqlConfig({
             username: <string> bootcfg["MySQL.Username"],
             password: <string> bootcfg["MySQL.Password"],

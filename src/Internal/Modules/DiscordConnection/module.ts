@@ -175,7 +175,7 @@ export = class DiscordConnectionModule extends Module {
                         let modu = <Module>LoadedModules[mod][0];
                         await message.reply("Loaded module **" + modu.Name + "** version " + modu.Version.toString());
                     } catch (e) {
-                        global.logger.Error(e.stack);
+                        global.logger.Error(e.stack, "DiscordConnection");
                         await message.reply("Failed to load module " + mod);
                     }
                 } else {
@@ -206,7 +206,7 @@ export = class DiscordConnectionModule extends Module {
                         await ModuleCall("System", "UnloadModule", mod);
                         await message.reply("Unloaded module **" + mod + "**");
                     } catch (e) {
-                        global.logger.Error(e.stack);
+                        global.logger.Error(e.stack, "DiscordConnection");
                         await message.reply("Failed to unload module " + mod);
                     }
                 } else {
@@ -232,7 +232,7 @@ export = class DiscordConnectionModule extends Module {
                     if (mod == "System")
                         return;
                     try {
-                        logger.Info("Reloading " + mod);
+                        logger.Info("Reloading " + mod, "DiscordConnection");
                         let unloaded = await global.loader.UnloadModule(mod);
                         await Promise.all(unloaded.map(mod => global.loader.LoadModule(mod)));
 
@@ -241,9 +241,9 @@ export = class DiscordConnectionModule extends Module {
                             await message.reply("Reloaded module **" + modu.Name + "** version " + modu.Version.toString());
                         else
                             await modu.Functions["__reply"].call(modu, message, "Reloaded module **" + modu.Name + "** version " + modu.Version.toString());
-                        logger.Info("Reloaded " + modu.Name + " v" + modu.Version.toString());
+                        logger.Info("Reloaded " + modu.Name + " v" + modu.Version.toString(), "DiscordConnection");
                     } catch (e) {
-                        global.logger.Error(e.stack);
+                        global.logger.Error(e.stack, "DiscordConnection");
                         if (mod !== "DiscordConnection" || LoadedModules[mod][1] == ModuleStatus.Loaded) {
                             await message.reply("Failed to reload " + mod);
                         } else {
@@ -339,7 +339,7 @@ export = class DiscordConnectionModule extends Module {
                                 await message.reply("No variable name passed.");
                                 return;
                             }
-                            value = args[2];
+                            value = args.slice(2).join(" ");
                             if(value == null){
                                 await message.reply("No variable value passed.");
                                 return;
@@ -387,11 +387,10 @@ export = class DiscordConnectionModule extends Module {
             ]
         });
         client.on("message", async message => {
-            if (message.guild.id !== this.guild || message.member == null)
+            if (message.guild == null || message.guild.id !== this.guild || message.member == null)
                 return;
 
             const msg = message.content.trim();
-            logger.Debug("Received message: `" + JSON.stringify(msg) + "`");
             if (msg.indexOf(prefix) == 0) {
                 const parts = msg.split(" ");
                 const command = parts[0].substr(prefix.length);
@@ -404,11 +403,11 @@ export = class DiscordConnectionModule extends Module {
         });
 
         client.on("error", err => {
-            logger.Error("Discord error: " + err.stack);
+            logger.Error("Discord error: " + err.stack, "DiscordConnection");
             global.loader.UnloadModule("DiscordConnection");
         });
         await client.login(token);
-        logger.Info("Connected to Discord as `" + client.user.username + "#" + client.user.discriminator + "`");
+        logger.Info("Connected to Discord as `" + client.user.username + "#" + client.user.discriminator + "`", "DiscordConnection");
     }
 
     public async Unload() {

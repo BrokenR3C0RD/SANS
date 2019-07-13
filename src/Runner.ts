@@ -2,6 +2,9 @@
     San Andreas State Bot
     (c) 2019 MasterR3C0RD
 */
+
+import 'source-map-support/register'
+
 declare global {
     module NodeJS {
         interface Global {

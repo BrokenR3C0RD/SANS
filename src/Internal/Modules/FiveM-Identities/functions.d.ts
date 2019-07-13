@@ -69,6 +69,14 @@ declare module "../../Module" {
     function ModuleCall(moduleName: name, functionName: "GetUser", id: string): Promise<UserInfo | null>;
 
     /**
+     * Returns a list of all whitelisted user identifiers.
+     * @param moduleName The `FiveM-Identities` module
+     * @param functionName `GetWhitelistIDs`
+     */
+    // @ts-ignore
+    function ModuleCall(moduleName: name, functionName: "GetWhitelistIDs"): Promise<string[]>;
+
+    /**
      * Toggles a user's staff code.
      * @param moduleName The `FiveM-Identities` module
      * @param functionName `SetCode`
@@ -129,4 +137,13 @@ declare module "../../Module" {
      */
     // @ts-ignore
     function ModuleCall(moduleName: name, functionName: "DeletePerm", user: UserInfo | null, perm: string): Promise<void>;
+
+    /**
+     * Clears all of a user's permissions.
+     * @param moduleName The `FiveM-Identities` module
+     * @param functionName `ClearPermissions`
+     * @param user The user to clear permissions for.
+     */
+    // @ts-ignore
+    function ModuleCall(moduleName: name, functionName: "ClearPermissions", user: UserInfo): Promise<void>;
 }

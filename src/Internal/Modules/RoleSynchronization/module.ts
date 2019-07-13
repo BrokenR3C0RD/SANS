@@ -81,7 +81,7 @@ let parsePermissionsFile = function(data: string): StaffRoleData {
 export = class RoleSynchronization extends Module {
     public Name = "Role Synchronization";
     public Author = "MasterR3C0RD";
-    public Version = new Version(1, 0, 0);
+    public Version = new Version(1, 1, 0);
     public Dependencies = {
         "DiscordConnection": new Version(1, 0, 0),
         "FiveM-Identities": new Version(1, 0, 0)
@@ -121,8 +121,13 @@ export = class RoleSynchronization extends Module {
         let guild = <Discord.Guild> this.guild;
         await guild.fetchMembers();
 
-        for(let key of guild.members)
-            await this.applyRoles(key[1]);
+        for(let key of guild.members){
+            try {
+                await this.applyRoles(key[1]);
+            } catch(e){
+                logger.Error(`Error handling user discord:${key[1]} - ${e.message}`);
+            }
+        }
     }
 
     private applyRoles = async (member: Discord.GuildMember, removedRoles: string[] = []) => {
@@ -173,14 +178,11 @@ export = class RoleSynchronization extends Module {
         let auditLogs = await guild.fetchAuditLogs({
             type: "MEMBER_ROLE_UPDATE"
         });
-        let action = auditLogs.entries.filter(entry => (entry.target as Discord.User).id == oldmem.id).first();
-        if(action == null || Date.now() - action.createdAt.getTime() >= 2000)
+        let action = auditLogs.entries.filter(entry => (entry.target as Discord.User).id == newmem.id).first();
+        if(action == null || (Date.now() - action.createdAt.getTime()) >= 4000)
             return;
 
         let executor = action.executor;
-        if(executor.id == guild.client.user.id) // Probably the bot removing the code, either way it's not of any use to us.
-            return;
-        
         if(oldmem.roles.equals(newmem.roles))
             return;
 
@@ -219,6 +221,19 @@ export = class RoleSynchronization extends Module {
         await (<Discord.TextChannel>this.logchan).send(embed);
     }).bind(this);
 
+    private onMemberLeave = (async (member: Discord.GuildMember) => {
+        try {
+            let user = await ModuleCall("FiveM-Identities", "GetUser", `discord:${member.id}`);
+            if(user == null)
+                return;
+            
+            await ModuleCall("FiveM-Identities", "ClearPermissions", user);
+            logger.Info("Cleared permissions for discord:" + member.id, "RoleSynchronization");
+        } catch(e){
+            return;
+        }
+    }).bind(this);
+
     public async Load() {
         const sql = this.sqlConfig = await ModuleCall("System", "GetConfig");
         await sql.Defaults(defaults);
@@ -236,10 +251,12 @@ export = class RoleSynchronization extends Module {
         await ModuleCall("DiscordConnection", "RegisterCommands", this.commands);
 
         this.client.on("guildMemberUpdate", this.onMemberUpdate);
+        this.client.on("guildMemberRemove", this.onMemberLeave);
     }
 
     public async Unload() {
         let client = <Discord.Client> this.client;
         client.removeListener("guildMemberUpdate", this.onMemberUpdate);
+        client.removeListener("guildMemberRemove", this.onMemberLeave);
     }
 }

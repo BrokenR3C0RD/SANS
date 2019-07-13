@@ -61,7 +61,7 @@ export class LogMessage {
      */
     public ToString(): string {
         let start = Formatting.Format("[%t] %n%l: ", {
-            n: (this.name ? "(" + colors.gray(this.name) + ") ": ""),
+            n: (this.name ? " ".repeat(20 - this.name.substr(0, 20).length) + "(" + colors.gray(this.name.substr(0, 20)) + ") ": " ".repeat(20)),
             t: colors.yellow(Formatting.FormatTime(this.timestamp, "%D %T")),
             l: colors.red(LogLevel[this.level])
         });
@@ -74,7 +74,7 @@ export class LogMessage {
      */
     public ToSafeString(): string {
         let start = Formatting.Format("[%t] %n%l: ", {
-            n: (this.name ? "(" + this.name + ") ": ""),
+            n: (this.name ?  " ".repeat(20 - this.name.substr(0, 20).length) + "(" + this.name.substr(0, 20) + ") ": " ".repeat(20)),
             t: Formatting.FormatTime(this.timestamp, "%D %T"),
             l: LogLevel[this.level]
         });
@@ -128,7 +128,7 @@ export class Logger implements IDisposable {
      */
     public Log(message: LogMessage): void {
         if(message.level >= this.minConsoleLevel)
-            process.stderr.write(message.ToString() + "\n");
+            process.stderr.write((process.stdout.isTTY ? message.ToString() : message.ToSafeString()) + "\n");
 
         if(this.stream && message.level >= this.minFileLevel)
             this.stream.write(message.ToSafeString() + "\n");

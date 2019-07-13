@@ -20,7 +20,7 @@ export let parentPath = path.dirname(parent.filename);
 /**
  * The current module API version provided.
  */
-const APIVersion = new Version(1, 0, 0, "alpha", meta);
+const APIVersion = new Version(1, 0, 0, "beta", meta);
 
 /**
  * Defines modules and the version required for use.

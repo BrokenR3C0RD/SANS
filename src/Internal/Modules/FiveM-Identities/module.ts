@@ -5,7 +5,7 @@
 */
 import { Module, Version, parentPath, Formatting, LoadedModules, ModuleCall, Config, Dictionary, ModuleStatus, CommandDescriptor } from "../../Module";
 import MySQL from "mysql2/promise";
-import Discord from "discord.js";
+import Discord, { Role } from "discord.js";
 import { toDec } from "./BigHex";
 
 const logger = global.logger;
@@ -47,7 +47,7 @@ const DATE_FORMAT = "%A, %B %d, %Y, %I:%2M:%2S %a";
 export = class FiveMIdentities extends Module {
     public Name = "FiveM Identities Library";
     public Author = "MasterR3C0RD";
-    public Version = new Version(1, 0, 0);
+    public Version = new Version(1, 1, 0);
 
     public Dependencies = {
         "DiscordConnection": new Version(1, 0, 0),
@@ -217,6 +217,17 @@ export = class FiveMIdentities extends Module {
                 allow
             ]);
         },
+        GetWhitelistIDs: async (): Promise<string[]> => {
+            const database = <MySQL.Connection>this.database;
+            const rows = (<MySQL.RowDataPacket[]> (await database.query("SELECT id FROM userids WHERE uid in (SELECT uid FROM whitelisted WHERE allowed = 1)"))[0]).map(row => row.id as string);
+            return rows;
+        },
+        ClearPermissions: async (user: UserInfo): Promise<void> => {
+            const database = <MySQL.Connection>this.database;
+            await database.query("DELETE FROM userpermissions WHERE uid = ?", user.uid);
+            await database.query("DELETE FROM whitelisted WHERE uid = ?", user.uid);
+            await database.query("DELETE FROM police WHERE identifier in (SELECT * FROM userids WHERE uid = ?)", user.uid);
+        }
     }
 
     private database: MySQL.Connection | null = null;
@@ -350,7 +361,7 @@ export = class FiveMIdentities extends Module {
                     await message.reply(embed);
                     await message.delete();
                 } catch(e){
-                    logger.Error(e.stack);
+                    logger.Error(e.stack, "FiveM-Identities");
                     await message.reply("Failed to lookup `" + id + "`");
                 }
             },
@@ -441,7 +452,7 @@ export = class FiveMIdentities extends Module {
                     await message.reply(embed);
                     await message.delete();
                 } catch(e){
-                    logger.Error(e.stack);
+                    logger.Error(e.stack, "FiveM-Identities");
                     await message.reply("Failed to lookup `" + id + "`");
                 }
             },
@@ -452,6 +463,115 @@ export = class FiveMIdentities extends Module {
             usage: [
                 "%c <@227551426232975361>",
                 "Gets MasterR3C0RD's information."
+            ]
+        },
+        "?lookup": {
+            callback: async (command, args, user, message) => {
+                const hasPermission = await ModuleCall("DiscordConnection", "IsOwner", user) || (this.lookupRoles.concat(this.lookupExtRoles)).reduce((acc, id) => user.roles.has(id) || acc, <boolean> false);
+                if(!hasPermission){
+                    await message.reply("You do not have permission to use this command.");
+                    return;
+                }
+
+                let roles: string[] = [];
+                let monthlyThreshold = [-Infinity, Infinity];
+                let weeklyThreshold = [-Infinity, Infinity];
+                let totalThreshold = [-Infinity, Infinity];
+
+                for(let arg of args){
+                    if(arg.indexOf("<@&") == 0){
+                        roles.push(arg.substring(3, arg.length - 1));
+                    } else if(arg.indexOf("total") == 0){
+                        let op = arg.substr(5);
+                        let threshold = totalThreshold;
+                        if(op.indexOf("<=") == 0){
+                            threshold[1] = +op.substr(2);
+                        } else if(op.indexOf(">=") == 0){
+                            threshold[0] = +op.substr(2);
+                        } else if(op.indexOf("=") == 0){
+                            threshold = [ +op.substr(1), +op.substr(1) ];
+                        } else if(op.indexOf(">") == 0){
+                            threshold[0] = +op.substr(1) + 1;
+                        } else if(op.indexOf("<") == 0){
+                            threshold[1] = +op.substr(1) - 1;
+                        }
+                        totalThreshold = threshold;
+                    } else if(arg.indexOf("monthly") == 0){
+                        let op = arg.substr(7);
+                        let threshold = monthlyThreshold;
+                        if(op.indexOf("<=") == 0){
+                            threshold[1] = +op.substr(2);
+                        } else if(op.indexOf(">=") == 0){
+                            threshold[0] = +op.substr(2);
+                        } else if(op.indexOf("=") == 0){
+                            threshold = [ +op.substr(1), +op.substr(1) ];
+                        } else if(op.indexOf(">") == 0){
+                            threshold[0] = +op.substr(1) + 1;
+                        } else if(op.indexOf("<") == 0){
+                            threshold[1] = +op.substr(1) - 1;
+                        }
+                        monthlyThreshold = threshold;
+                    } else if(arg.indexOf("weekly") == 0){
+                        let op = arg.substr(6);
+                        let threshold = weeklyThreshold;
+                        if(op.indexOf("<=") == 0){
+                            threshold[1] = +op.substr(2);
+                        } else if(op.indexOf(">=") == 0){
+                            threshold[0] = +op.substr(2);
+                        } else if(op.indexOf("=") == 0){
+                            threshold = [ +op.substr(1), +op.substr(1) ];
+                        } else if(op.indexOf(">") == 0){
+                            threshold[0] = +op.substr(1) + 1;
+                        } else if(op.indexOf("<") == 0){
+                            threshold[1] = +op.substr(1) - 1;
+                        }
+                        weeklyThreshold = threshold;
+                    }
+                }
+                if(roles.length == 0){
+                    await message.reply("At least one role, excluding `@everyone`, must be used");
+                    return;
+                }
+                let guild = user.guild;
+                await guild.fetchMembers();
+                let role = guild.roles.get(roles[0]) as Discord.Role;
+                let users = role.members.filter(user => roles.filter(role => user.roles.has(role)).length == roles.length).map(user => "discord:" + user.id);
+
+                let results: string[] = [];
+                for(let id of users){
+                    try {
+                        let user = await this.Functions.GetUser(id);
+                        if(user == null) continue;
+
+                        let total = user.playtime.total;
+                        let monthly = user.playtime.monthly;
+                        let weekly = user.playtime.weekly;
+
+                        let totalmin = total.days * 24 * 60 + total.hours * 60 + total.minutes + total.seconds / 60;
+                        let monthlymin = monthly.days * 24 * 60 + monthly.hours * 60 + monthly.minutes + monthly.seconds / 60;
+                        let weeklymin = weekly.days * 24 * 60 + weekly.hours * 60 + weekly.minutes + weekly.seconds / 60;
+
+                        if (totalmin >= totalThreshold[0] && totalmin <= totalThreshold[1]
+                            && monthlymin >= monthlyThreshold[0] && monthlymin <= monthlyThreshold[1]
+                            && weeklymin >= weeklyThreshold[0] && weeklymin <= weeklyThreshold[1]){
+                                results.push(id);
+                            }
+                    } catch(e){
+                        logger.Error("Failed to test " + id + ": " + e.message);
+                    }
+                }
+                let resultcount = results.length;
+                let res = results.length > 0 ? " - " + results.slice(0, 20).map(id => `<@${id.substr(8)}>`).join("\n - ") : "";
+                await user.sendMessage(`${resultcount} results${resultcount > 20 ? " (truncated to 20)": ""}:\n${res}`);
+            },
+            description: "DMs a list of all users meeting criteria passed",
+            arguments: {
+                "@role": "A role the user must have.",
+                "monthly/weekly/total": "The amount of time, in minutes, the user has on the server in the past month/the past week/since they first joined the server."
+            },
+            usage: [
+                "s!?lookup @Staff monthly<60",
+                "DMs a list of every user with the Staff role that has less than an hour in the past month on the server."
             ]
         }
     };
@@ -464,17 +584,17 @@ export = class FiveMIdentities extends Module {
         this.lookupExtRoles = (data["IdentityLookupExtRoles"] as string).split(" ");
         this.database = await MySQL.createConnection(await ModuleCall("System", "GetMysqlInfo", data["IdentityDatabase"] as string));
         this.database.on("error", err => {
-            logger.Error(err.stack);
-            logger.Info("Will attempt to reconnect to database in 5 seconds.");
+            logger.Error(err.stack, "FiveM-Identities");
+            logger.Info("Will attempt to reconnect to database in 5 seconds.", "FiveM-Identities");
             setTimeout(() => {
                 ModuleCall("System", "GetMysqlInfo", data["IdentityDatabase"] as string)
                     .then(data => MySQL.createConnection(data))
                     .then(conn => this.database = conn);
             }, 5000);
         });
-        logger.Info("Connected to identities database");
+        logger.Info("Connected to identities database", "FiveM-Identities");
         await ModuleCall("DiscordConnection", "RegisterCommands", this.commands);
-        logger.Info("Registered commands");
+        logger.Info("Registered commands", "FiveM-Identities");
     }
 
     public async Unload() {
